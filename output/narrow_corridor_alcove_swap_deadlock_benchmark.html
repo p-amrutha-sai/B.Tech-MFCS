@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MAPF SAT Bounded Model Checking Visualizer</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      margin: 0;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .header h1 {
+      margin: 0 0 6px 0;
+      font-size: 24px;
+      color: #38bdf8;
+    }
+    .header p {
+      margin: 0;
+      color: #94a3b8;
+      font-size: 14px;
+    }
+    .dashboard {
+      display: flex;
+      gap: 28px;
+      max-width: 1050px;
+      width: 100%;
+      background: #1e293b;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    .canvas-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    svg {
+      background: #0b0f19;
+      border-radius: 8px;
+      border: 1px solid #334155;
+    }
+    .controls {
+      margin-top: 16px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .buttons {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+    button {
+      background: #38bdf8;
+      color: #0f172a;
+      border: none;
+      padding: 8px 16px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #7dd3fc;
+    }
+    button:disabled {
+      background: #475569;
+      cursor: not-allowed;
+    }
+    .scrubber-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    input[type=range] {
+      flex: 1;
+      accent-color: #38bdf8;
+    }
+    .sidebar {
+      width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .card {
+      background: #0f172a;
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      font-size: 13px;
+    }
+    .card h3 {
+      margin: 0 0 10px 0;
+      font-size: 14px;
+      color: #38bdf8;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 6px;
+    }
+    .robot-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .badge {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .status-ok {
+      color: #4ade80;
+      font-weight: bold;
+    }
+    .status-err {
+      color: #f87171;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1 id="titleDisplay">MAPF SAT Reduction Bounded Model Checker</h1>
+    <p>Mathematical Foundations of Computer Science - SAT Encoding & Multi-Agent Verification</p>
+  </div>
+
+  <div class="dashboard">
+    <div class="canvas-container">
+      <svg id="gridSvg" width="460" height="460"></svg>
+      <div class="controls">
+        <div class="scrubber-row">
+          <span style="font-size: 13px; font-weight: bold;">Time t:</span>
+          <input type="range" id="timeSlider" min="0" max="6" value="0">
+          <span id="timeDisplay" style="font-family: monospace; font-size: 14px; min-width: 60px;">0 / 6</span>
+        </div>
+        <div class="buttons">
+          <button id="btnPrev">◀ Prev</button>
+          <button id="btnPlay">▶ Play</button>
+          <button id="btnNext">Next ▶</button>
+          <button id="btnReset">Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar">
+      <div class="card">
+        <h3>Instance Parameters</h3>
+        <div><strong>Scenario:</strong> Narrow Corridor Alcove Swap (Deadlock Benchmark)</div>
+        <div><strong>Grid Size:</strong> 5 &times; 3 (6 free cells)</div>
+        <div><strong>Static Obstacles:</strong> 9 cells</div>
+        <div><strong>Active Robots:</strong> 2</div>
+        <div><strong>SAT Optimal Makespan T*:</strong> <span style="color: #38bdf8; font-weight: bold;">6</span></div>
+      </div>
+
+      <div class="card">
+        <h3>Live Robot Coordinates (t = <span id="timeBadge">0</span>)</h3>
+        <div id="robotPositionsContainer"></div>
+      </div>
+
+      <div class="card">
+        <h3>Collision Verification</h3>
+        <div>Vertex Collisions: <span class="status-ok" id="vColStatus">0 (Satisfied)</span></div>
+        <div>Edge Swap Collisions: <span class="status-ok" id="eColStatus">0 (Satisfied)</span></div>
+        <div style="margin-top: 8px; color: #94a3b8; font-size: 11px;">
+          Formally proved conflict-free via Conjunctive Normal Form (CNF) clauses in PySAT.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const DATA = {"scenario_name": "Narrow Corridor Alcove Swap (Deadlock Benchmark)", "width": 5, "height": 3, "obstacles": [[1, 2], [4, 0], [0, 0], [2, 0], [4, 2], [3, 0], [0, 2], [1, 0], [3, 2]], "starts": [[0, 1], [4, 1]], "goals": [[4, 1], [0, 1]], "sat_paths": {"0": [[0, 1], [0, 1], [1, 1], [2, 1], [3, 1], [3, 1], [4, 1]], "1": [[4, 1], [3, 1], [2, 1], [2, 2], [2, 1], [1, 1], [0, 1]]}, "sat_makespan": 6, "baseline_paths": null, "baseline_makespan": null, "colors": ["#E63946", "#1D3557"]};
+    const svg = document.getElementById("gridSvg");
+    const slider = document.getElementById("timeSlider");
+    const timeDisplay = document.getElementById("timeDisplay");
+    const timeBadge = document.getElementById("timeBadge");
+    const btnPlay = document.getElementById("btnPlay");
+    const btnPrev = document.getElementById("btnPrev");
+    const btnNext = document.getElementById("btnNext");
+    const btnReset = document.getElementById("btnReset");
+    const robotPositionsContainer = document.getElementById("robotPositionsContainer");
+
+    const w = DATA.width;
+    const h = DATA.height;
+    const cellSize = 460 / Math.max(w, h);
+    let currentTime = 0;
+    let isPlaying = false;
+    let timer = null;
+
+    function renderStaticGrid() {
+      svg.innerHTML = "";
+      // Grid cells
+      for (let x = 0; x < w; x++) {
+        for (let y = 0; y < h; y++) {
+          const isObs = DATA.obstacles.some(o => o[0] === x && o[1] === y);
+          const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+          rect.setAttribute("x", x * cellSize);
+          rect.setAttribute("y", (h - 1 - y) * cellSize);
+          rect.setAttribute("width", cellSize);
+          rect.setAttribute("height", cellSize);
+          rect.setAttribute("fill", isObs ? "#1e293b" : "#0f172a");
+          rect.setAttribute("stroke", "#334155");
+          rect.setAttribute("stroke-width", "1");
+          svg.appendChild(rect);
+
+          if (isObs) {
+            const line1 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line1.setAttribute("x1", x * cellSize);
+            line1.setAttribute("y1", (h - 1 - y) * cellSize);
+            line1.setAttribute("x2", (x + 1) * cellSize);
+            line1.setAttribute("y2", (h - y) * cellSize);
+            line1.setAttribute("stroke", "#475569");
+            line1.setAttribute("stroke-width", "1.5");
+            svg.appendChild(line1);
+          }
+        }
+      }
+
+      // Goal markers
+      DATA.goals.forEach((g, i) => {
+        const color = DATA.colors[i % DATA.colors.length];
+        const gx = g[0] * cellSize;
+        const gy = (h - 1 - g[1]) * cellSize;
+        
+        const gRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        gRect.setAttribute("x", gx + 4);
+        gRect.setAttribute("y", gy + 4);
+        gRect.setAttribute("width", cellSize - 8);
+        gRect.setAttribute("height", cellSize - 8);
+        gRect.setAttribute("fill", "none");
+        gRect.setAttribute("stroke", color);
+        gRect.setAttribute("stroke-dasharray", "4,3");
+        gRect.setAttribute("stroke-width", "2");
+        svg.appendChild(gRect);
+
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", gx + cellSize / 2);
+        text.setAttribute("y", gy + cellSize / 2 + 4);
+        text.setAttribute("text-anchor", "middle");
+        text.setAttribute("font-size", "12");
+        text.setAttribute("font-weight", "bold");
+        text.setAttribute("fill", color);
+        text.textContent = "G" + i;
+        svg.appendChild(text);
+      });
+
+      // Group for trails & robots
+      const dynamicGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      dynamicGroup.setAttribute("id", "dynamicLayer");
+      svg.appendChild(dynamicGroup);
+    }
+
+    function updateFrame(t) {
+      currentTime = t;
+      slider.value = t;
+      timeDisplay.textContent = t + " / " + DATA.sat_makespan;
+      timeBadge.textContent = t;
+
+      const dynamicGroup = document.getElementById("dynamicLayer");
+      dynamicGroup.innerHTML = "";
+
+      let htmlRobots = "";
+
+      // Draw trails up to time t
+      Object.keys(DATA.sat_paths).forEach(id => {
+        const path = DATA.sat_paths[id];
+        const color = DATA.colors[id % DATA.colors.length];
+        let d = "";
+        for (let step = 0; step <= t; step++) {
+          const px = path[step][0] * cellSize + cellSize / 2;
+          const py = (h - 1 - path[step][1]) * cellSize + cellSize / 2;
+          d += (step === 0 ? "M " : " L ") + px + " " + py;
+        }
+        const polyline = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        polyline.setAttribute("d", d);
+        polyline.setAttribute("fill", "none");
+        polyline.setAttribute("stroke", color);
+        polyline.setAttribute("stroke-width", "2.5");
+        polyline.setAttribute("opacity", "0.4");
+        dynamicGroup.appendChild(polyline);
+      });
+
+      // Draw robots at time t
+      Object.keys(DATA.sat_paths).forEach(id => {
+        const pos = DATA.sat_paths[id][t];
+        const color = DATA.colors[id % DATA.colors.length];
+        const cx = pos[0] * cellSize + cellSize / 2;
+        const cy = (h - 1 - pos[1]) * cellSize + cellSize / 2;
+
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("cx", cx);
+        circle.setAttribute("cy", cy);
+        circle.setAttribute("r", cellSize * 0.38);
+        circle.setAttribute("fill", color);
+        circle.setAttribute("stroke", "#ffffff");
+        circle.setAttribute("stroke-width", "2");
+        dynamicGroup.appendChild(circle);
+
+        const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        txt.setAttribute("x", cx);
+        txt.setAttribute("y", cy + 4);
+        txt.setAttribute("text-anchor", "middle");
+        txt.setAttribute("font-size", "11");
+        txt.setAttribute("font-weight", "bold");
+        txt.setAttribute("fill", "#ffffff");
+        txt.textContent = "R" + id;
+        dynamicGroup.appendChild(txt);
+
+        htmlRobots += `
+          <div class="robot-row">
+            <span><span class="badge" style="background:${color}"></span>Robot ${id}</span>
+            <span style="font-family: monospace; color: #38bdf8;">(${pos[0]}, ${pos[1]})</span>
+          </div>
+        `;
+      });
+
+      robotPositionsContainer.innerHTML = htmlRobots;
+    }
+
+    slider.addEventListener("input", (e) => updateFrame(parseInt(e.target.value)));
+    btnPrev.addEventListener("click", () => {
+      if (currentTime > 0) updateFrame(currentTime - 1);
+    });
+    btnNext.addEventListener("click", () => {
+      if (currentTime < DATA.sat_makespan) updateFrame(currentTime + 1);
+    });
+    btnReset.addEventListener("click", () => {
+      pause();
+      updateFrame(0);
+    });
+
+    function play() {
+      isPlaying = true;
+      btnPlay.textContent = "⏸ Pause";
+      timer = setInterval(() => {
+        if (currentTime < DATA.sat_makespan) {
+          updateFrame(currentTime + 1);
+        } else {
+          pause();
+        }
+      }, 600);
+    }
+
+    function pause() {
+      isPlaying = false;
+      btnPlay.textContent = "▶ Play";
+      if (timer) clearInterval(timer);
+    }
+
+    btnPlay.addEventListener("click", () => {
+      if (isPlaying) pause();
+      else {
+        if (currentTime >= DATA.sat_makespan) currentTime = 0;
+        play();
+      }
+    });
+
+    renderStaticGrid();
+    updateFrame(0);
+  </script>
+</body>
+</html>
