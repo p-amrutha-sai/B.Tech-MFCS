@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multi-Agent Path Finding</title>
+  <style>
+    :root {
+      --bg: #0b132b;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --cyan: #38bdf8;
+      --green: #4ade80;
+      --amber: #fb923c;
+      --red: #f87171;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 20px 30px;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 16px;
+      max-width: 900px;
+    }
+    header h1 {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--cyan);
+      letter-spacing: -0.5px;
+      margin-bottom: 4px;
+    }
+    header p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Top Tabs for Scenarios */
+    .scenario-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+      width: 100%;
+      max-width: 1100px;
+      justify-content: center;
+    }
+    .tab-btn {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-btn:hover {
+      background: #1e293b;
+      color: #fff;
+    }
+    .tab-btn.active {
+      background: var(--cyan);
+      color: #0f172a;
+      border-color: var(--cyan);
+      box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
+    }
+
+    /* Main Container */
+    .app-container {
+      display: flex;
+      gap: 20px;
+      width: 100%;
+      max-width: 1100px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Left: Problem Image & Horizon BMC Controller */
+    .left-panel {
+      flex: 1.1;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 14px;
+    }
+
+    /* Problem image card matches exact size of problem SVG */
+    .canvas-card {
+      position: relative;
+      background: #070b14;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      width: fit-content;
+      max-width: 100%;
+      height: fit-content;
+      margin: 0 auto;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+    svg {
+      display: block;
+      background: transparent;
+      max-width: 100%;
+      height: auto;
+      border-radius: 6px;
+    }
+    .unsat-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.92);
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 16px;
+      backdrop-filter: blur(4px);
+    }
+    .unsat-overlay h2 {
+      color: var(--red);
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
+    .unsat-overlay p {
+      color: #cbd5e1;
+      font-size: 13px;
+      max-width: 380px;
+      line-height: 1.45;
+      margin-bottom: 12px;
+    }
+
+    /* Section Cards Common */
+    .section-card {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 13px;
+    }
+    .section-card h3 {
+      font-size: 13px;
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Horizon BMC Section below Grid */
+    .horizon-card {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .horizon-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 6px;
+    }
+    .horizon-header-row h3 {
+      margin-bottom: 0;
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .status-pill {
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+    }
+    .pill-sat-opt {
+      background: rgba(74, 222, 128, 0.15);
+      color: var(--green);
+      border: 1px solid rgba(74, 222, 128, 0.4);
+    }
+    .pill-sat {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--cyan);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+    }
+    .pill-unsat {
+      background: rgba(248, 113, 113, 0.15);
+      color: var(--red);
+      border: 1px solid rgba(248, 113, 113, 0.4);
+    }
+
+    /* Horizon Slider Row with - [Slider from BFS distance to Optimal+2] + [Auto] */
+    .horizon-slider-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 4px 0 2px 0;
+    }
+    .step-btn {
+      background: #1e293b;
+      border: 1px solid var(--border);
+      color: #fff;
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .step-btn:hover { background: #334155; }
+    .slider-track-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .slider-track-wrap input[type=range] {
+      width: 100%;
+      accent-color: var(--cyan);
+      cursor: pointer;
+    }
+    .slider-marks {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--text-muted);
+      padding: 0 4px;
+      font-family: monospace;
+    }
+    .auto-btn {
+      background: #0369a1;
+      color: #fff;
+      border: 1px solid var(--cyan);
+      white-space: nowrap;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .auto-btn:hover { background: #0284c7; }
+
+    /* Box that prints for every t as SAT/UNSAT(optimal)/UNSAT */
+    .horizon-print-box {
+      background: #090d16;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11.5px;
+      max-height: 190px;
+      overflow-y: auto;
+    }
+    .print-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .print-row:hover {
+      background: #1e293b;
+    }
+    .print-row.active-row {
+      background: rgba(56, 189, 248, 0.18);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      font-weight: bold;
+    }
+    .print-t {
+      color: #cbd5e1;
+    }
+    .print-row.active-row .print-t {
+      color: var(--cyan);
+    }
+    .print-unsat {
+      color: var(--red);
+      font-weight: 600;
+    }
+    .print-opt {
+      color: var(--green);
+      font-weight: 700;
+    }
+    .print-sat {
+      color: var(--cyan);
+      font-weight: 600;
+    }
+
+    /* Right Panel */
+    .right-panel {
+      flex: 0.9;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* Playback & Instant Step Card */
+    .playback-card {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .playback-button-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .ctrl-btn {
+      background: #1e293b;
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .ctrl-btn:hover { background: #334155; }
+    .ctrl-btn.primary {
+      background: var(--cyan);
+      color: #0f172a;
+      border-color: var(--cyan);
+    }
+    .ctrl-btn.primary:hover { background: #7dd3fc; }
+    .ctrl-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    /* Instant Step Box */
+    .instant-step-box {
+      background: #090d16;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .instant-step-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .step-badge {
+      font-family: monospace;
+      font-size: 12.5px;
+      font-weight: bold;
+      color: var(--cyan);
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .step-chips-container {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .step-chip {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: #1e293b;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 11.5px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .step-chip:hover {
+      background: #334155;
+      color: #fff;
+    }
+    .step-chip.active {
+      background: var(--cyan);
+      color: #0f172a;
+      border-color: var(--cyan);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+      transform: scale(1.08);
+    }
+    .step-chip.completed {
+      background: #0e304f;
+      color: #7dd3fc;
+      border-color: #0284c7;
+    }
+    .step-state-desc {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    /* Stats Table */
+    .stats-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11.5px;
+      margin-top: 6px;
+    }
+    .stats-table td {
+      padding: 4px 0;
+      color: var(--text-muted);
+    }
+    .stats-table td:last-child {
+      text-align: right;
+      color: #fff;
+      font-family: monospace;
+      font-weight: bold;
+    }
+
+    /* Robot Coordinates */
+    .robot-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0;
+      font-size: 12px;
+    }
+    .robot-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Multi-Agent Path Finding</h1>
+  </header>
+
+  <!-- Scenario Tabs -->
+  <div class="scenario-tabs">
+    <button class="tab-btn active" id="tabWarehouse" onclick="selectScenario('warehouse')">1. Warehouse Bottleneck</button>
+    <button class="tab-btn" id="tabCorridor" onclick="selectScenario('corridor')">2. Narrow Corridor Alcove</button>
+    <button class="tab-btn" id="tabRotation" onclick="selectScenario('rotation')">3. Cyclic Ring Rotation</button>
+  </div>
+
+  <div class="app-container">
+    
+    <!-- LEFT: Problem Image & Horizon BMC Controller -->
+    <div class="left-panel">
+      <!-- Problem Image Grid Card (fitted exactly to grid SVG size) -->
+      <div class="canvas-card">
+        <svg id="gridSvg" width="460" height="420" viewBox="0 0 460 420"></svg>
+        <div id="unsatOverlay" class="unsat-overlay" style="display: none;">
+          <h2>&#9888; PROVEN UNSATISFIABLE (UNSAT)</h2>
+          <p id="unsatExplanationText">No collision-free plan can physically exist for this time horizon.</p>
+          <button class="ctrl-btn primary" onclick="incrementHorizon()">Try Horizon T+1 &rarr;</button>
+        </div>
+      </div>
+
+      <!-- Horizon Slider & SAT/UNSAT Proof Box -->
+      <div class="section-card horizon-card">
+        <div class="horizon-header-row">
+          <h3><span>Horizon T = <span id="currentTLabel">7</span></span></h3>
+          <span id="horizonStatusBadge" class="status-pill pill-sat-opt">SAT (OPTIMAL)</span>
+        </div>
+
+        <!-- Slider row: - [range from BFS distance to Optimal+2] + [Auto] -->
+        <div class="horizon-slider-wrapper">
+          <button class="step-btn" id="btnMinus" onclick="adjustHorizon(-1)">&minus;</button>
+          <div class="slider-track-wrap">
+            <input type="range" id="horizonSlider" min="5" max="9" value="7" step="1" oninput="setHorizon(parseInt(this.value))">
+            <div class="slider-marks" id="sliderMarks"></div>
+          </div>
+          <button class="step-btn" id="btnPlus" onclick="adjustHorizon(1)">&plus;</button>
+          <button class="auto-btn" id="btnAuto" onclick="runAutoBmc()">&#9654; Auto</button>
+        </div>
+
+        <!-- Box that prints for every t as SAT/UNSAT(optimal)/UNSAT -->
+        <div class="horizon-print-box" id="horizonPrintBox"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Playback with Instant Steps, Live Coordinates, and CNF Footprint -->
+    <div class="right-panel">
+      
+      <!-- Section 1: Playback Controls & Instant Step Monitor (replaces BMC Controller) -->
+      <div class="section-card playback-card">
+        <h3>
+          <span>Playback Controls</span>
+          <div style="font-size: 11px; color: var(--text-muted); text-transform: none; font-weight: normal; display: flex; align-items: center; gap: 6px;">
+            Speed: 
+            <select id="speedSelect" onchange="changeSpeed(this.value)" style="background:#1e293b; color:#fff; border:1px solid #334155; border-radius:4px; padding:2px 6px; font-size: 11px;">
+              <option value="1000">0.5x</option>
+              <option value="600" selected>1.0x</option>
+              <option value="350">1.8x</option>
+            </select>
+          </div>
+        </h3>
+
+        <!-- Playback button group -->
+        <div class="playback-button-row">
+          <button class="ctrl-btn" id="btnPrev" onclick="stepTime(-1)">&#9664; Prev</button>
+          <button class="ctrl-btn primary" id="btnPlay" onclick="togglePlay()">&#9654; Play</button>
+          <button class="ctrl-btn" id="btnNext" onclick="stepTime(1)">Next &#9654;</button>
+          <button class="ctrl-btn" id="btnReset" onclick="resetTime()">&#8634; Reset</button>
+        </div>
+
+        <!-- Instant step monitor box -->
+        <div class="instant-step-box">
+          <div class="instant-step-header">
+            <span style="font-weight: 600; color: var(--cyan);">Instant Step:</span>
+            <span id="instantStepBadge" class="step-badge">Step 0 / 7</span>
+          </div>
+          <div class="step-chips-container" id="stepChipsContainer"></div>
+          <div id="stepStateText" class="step-state-desc">Agents at start positions (t = 0)</div>
+        </div>
+      </div>
+
+      <!-- Section 2: Live Coordinates (Swapped to be above CNF formula) -->
+      <div class="section-card">
+        <h3>
+          <span>Live Coordinates (t = <span id="timeBadge">0</span>)</span>
+        </h3>
+        <div id="robotCoordsList"></div>
+      </div>
+
+      <!-- Section 3: CNF Formula Footprint for Horizon T (Swapped to be below Live Coordinates) -->
+      <div class="section-card">
+        <h3>CNF Formula Footprint for Horizon T</h3>
+        <table class="stats-table">
+          <tr>
+            <td>Boolean Variables x&#123;i,v,t&#125;:</td>
+            <td id="statVars">896</td>
+          </tr>
+          <tr>
+            <td>Total CNF Clauses:</td>
+            <td id="statClauses">17,336</td>
+          </tr>
+          <tr>
+            <td>CDCL Solver Runtime:</td>
+            <td id="statTime">5.84 ms</td>
+          </tr>
+          <tr>
+            <td>Graph BFS Distance Lower Bound:</td>
+            <td id="statLb">5 steps</td>
+          </tr>
+        </table>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    const DATA = {"warehouse": {"name": "Warehouse Bottleneck (4 Robots)", "description": "6x6 warehouse grid with 4 storage racks. Robots 0 & 1 swap opposite ends of the central horizontal corridor while Robots 2 & 3 cross the vertical corridor simultaneously.", "width": 6, "height": 6, "obstacles": [[4, 4], [1, 2], [1, 5], [1, 1], [1, 4], [4, 2], [4, 5], [4, 1]], "starts": [[0, 3], [5, 3], [2, 0], [3, 5]], "goals": [[5, 3], [0, 3], [2, 5], [3, 0]], "optimal_T": 7, "lower_bound": 5, "horizons": {"4": {"T": 4, "is_sat": false, "solve_time_ms": 0.1, "num_vars": 560, "num_clauses": 100, "reason": "Distance Lower Bound Violated: Minimum BFS distance to reach goals is 5 steps. Impossible in 4 steps."}, "5": {"T": 5, "is_sat": false, "solve_time_ms": 4.32, "num_vars": 672, "num_clauses": 12928, "clause_stats": {"init_goal": 224, "alo": 24, "amo": 9072, "transitions": 560, "vertex_collisions": 1008, "edge_collisions": 2040, "total_clauses": 12928, "total_variables": 672}, "paths": null, "reason": "UNSAT: The CDCL solver proved that conflict-free routing is physically impossible within 5 steps due to corridor/intersection contention."}, "6": {"T": 6, "is_sat": false, "solve_time_ms": 5.03, "num_vars": 784, "num_clauses": 15132, "clause_stats": {"init_goal": 224, "alo": 28, "amo": 10584, "transitions": 672, "vertex_collisions": 1176, "edge_collisions": 2448, "total_clauses": 15132, "total_variables": 784}, "paths": null, "reason": "UNSAT: The CDCL solver proved that conflict-free routing is physically impossible within 6 steps due to corridor/intersection contention."}, "7": {"T": 7, "is_sat": true, "solve_time_ms": 6.18, "num_vars": 896, "num_clauses": 17336, "clause_stats": {"init_goal": 224, "alo": 32, "amo": 12096, "transitions": 784, "vertex_collisions": 1344, "edge_collisions": 2856, "total_clauses": 17336, "total_variables": 896}, "paths": {"0": [[0, 3], [1, 3], [2, 3], [2, 2], [3, 2], [3, 3], [4, 3], [5, 3]], "1": [[5, 3], [4, 3], [3, 3], [3, 3], [2, 3], [1, 3], [1, 3], [0, 3]], "2": [[2, 0], [3, 0], [3, 1], [3, 2], [3, 3], [2, 3], [2, 4], [2, 5]], "3": [[3, 5], [2, 5], [2, 4], [2, 3], [2, 2], [2, 1], [2, 0], [3, 0]]}, "reason": "Optimal Makespan T* = 7 Discovered! All agents reach goals conflict-free."}, "8": {"T": 8, "is_sat": true, "solve_time_ms": 6.6, "num_vars": 1008, "num_clauses": 19540, "clause_stats": {"init_goal": 224, "alo": 36, "amo": 13608, "transitions": 896, "vertex_collisions": 1512, "edge_collisions": 3264, "total_clauses": 19540, "total_variables": 1008}, "paths": {"0": [[0, 3], [1, 3], [2, 3], [3, 3], [4, 3], [3, 3], [3, 3], [4, 3], [5, 3]], "1": [[5, 3], [4, 3], [3, 3], [3, 2], [3, 3], [2, 3], [1, 3], [1, 3], [0, 3]], "2": [[2, 0], [2, 1], [2, 2], [2, 2], [3, 2], [2, 2], [2, 3], [2, 4], [2, 5]], "3": [[3, 5], [2, 5], [2, 4], [2, 3], [2, 2], [2, 1], [2, 0], [2, 0], [3, 0]]}, "reason": "SAT (Suboptimal): Feasible schedule found, but 7 is the true minimal makespan."}, "9": {"T": 9, "is_sat": true, "solve_time_ms": 7.48, "num_vars": 1120, "num_clauses": 21744, "clause_stats": {"init_goal": 224, "alo": 40, "amo": 15120, "transitions": 1008, "vertex_collisions": 1680, "edge_collisions": 3672, "total_clauses": 21744, "total_variables": 1120}, "paths": {"0": [[0, 3], [1, 3], [2, 3], [2, 2], [3, 2], [3, 2], [3, 3], [4, 3], [5, 3], [5, 3]], "1": [[5, 3], [5, 3], [4, 3], [3, 3], [2, 3], [1, 3], [0, 3], [1, 3], [0, 3], [0, 3]], "2": [[2, 0], [2, 1], [2, 2], [3, 2], [3, 3], [2, 3], [1, 3], [2, 3], [2, 4], [2, 5]], "3": [[3, 5], [2, 5], [2, 4], [2, 3], [2, 2], [2, 1], [2, 0], [1, 0], [2, 0], [3, 0]]}, "reason": "SAT (Suboptimal): Feasible schedule found, but 7 is the true minimal makespan."}}}, "corridor": {"name": "Narrow Corridor Alcove Swap (Deadlock Benchmark)", "description": "5x3 grid with a width-1 corridor and an alcove at (2, 2). Prioritized A* fails/deadlocks because Robot 0 claims the corridor and parks on the goal, whereas SAT discovers the coordinated sidestep maneuver into the alcove.", "width": 5, "height": 3, "obstacles": [[1, 2], [4, 0], [0, 0], [2, 0], [4, 2], [3, 0], [0, 2], [1, 0], [3, 2]], "starts": [[0, 1], [4, 1]], "goals": [[4, 1], [0, 1]], "optimal_T": 6, "lower_bound": 4, "horizons": {"3": {"T": 3, "is_sat": false, "solve_time_ms": 0.1, "num_vars": 48, "num_clauses": 100, "reason": "Distance Lower Bound Violated: Minimum BFS distance to reach goals is 4 steps. Impossible in 3 steps."}, "4": {"T": 4, "is_sat": false, "solve_time_ms": 0.16, "num_vars": 60, "num_clauses": 302, "clause_stats": {"init_goal": 24, "alo": 10, "amo": 150, "transitions": 48, "vertex_collisions": 30, "edge_collisions": 40, "total_clauses": 302, "total_variables": 60}, "paths": null, "reason": "UNSAT: The CDCL solver proved that conflict-free routing is physically impossible within 4 steps due to corridor/intersection contention."}, "5": {"T": 5, "is_sat": false, "solve_time_ms": 0.2, "num_vars": 72, "num_clauses": 362, "clause_stats": {"init_goal": 24, "alo": 12, "amo": 180, "transitions": 60, "vertex_collisions": 36, "edge_collisions": 50, "total_clauses": 362, "total_variables": 72}, "paths": null, "reason": "UNSAT: The CDCL solver proved that conflict-free routing is physically impossible within 5 steps due to corridor/intersection contention."}, "6": {"T": 6, "is_sat": true, "solve_time_ms": 0.21, "num_vars": 84, "num_clauses": 422, "clause_stats": {"init_goal": 24, "alo": 14, "amo": 210, "transitions": 72, "vertex_collisions": 42, "edge_collisions": 60, "total_clauses": 422, "total_variables": 84}, "paths": {"0": [[0, 1], [0, 1], [1, 1], [2, 1], [3, 1], [3, 1], [4, 1]], "1": [[4, 1], [3, 1], [2, 1], [2, 2], [2, 1], [1, 1], [0, 1]]}, "reason": "Optimal Makespan T* = 6 Discovered! All agents reach goals conflict-free."}, "7": {"T": 7, "is_sat": true, "solve_time_ms": 0.41, "num_vars": 96, "num_clauses": 482, "clause_stats": {"init_goal": 24, "alo": 16, "amo": 240, "transitions": 84, "vertex_collisions": 48, "edge_collisions": 70, "total_clauses": 482, "total_variables": 96}, "paths": {"0": [[0, 1], [1, 1], [1, 1], [2, 1], [3, 1], [2, 1], [3, 1], [4, 1]], "1": [[4, 1], [3, 1], [2, 1], [2, 2], [2, 1], [1, 1], [0, 1], [0, 1]]}, "reason": "SAT (Suboptimal): Feasible schedule found, but 6 is the true minimal makespan."}, "8": {"T": 8, "is_sat": true, "solve_time_ms": 0.31, "num_vars": 108, "num_clauses": 542, "clause_stats": {"init_goal": 24, "alo": 18, "amo": 270, "transitions": 96, "vertex_collisions": 54, "edge_collisions": 80, "total_clauses": 542, "total_variables": 108}, "paths": {"0": [[0, 1], [1, 1], [1, 1], [2, 1], [3, 1], [3, 1], [4, 1], [3, 1], [4, 1]], "1": [[4, 1], [3, 1], [2, 1], [2, 2], [2, 1], [2, 1], [2, 1], [1, 1], [0, 1]]}, "reason": "SAT (Suboptimal): Feasible schedule found, but 6 is the true minimal makespan."}, "9": {"T": 9, "is_sat": true, "solve_time_ms": 0.34, "num_vars": 120, "num_clauses": 602, "clause_stats": {"init_goal": 24, "alo": 20, "amo": 300, "transitions": 108, "vertex_collisions": 60, "edge_collisions": 90, "total_clauses": 602, "total_variables": 120}, "paths": {"0": [[0, 1], [1, 1], [1, 1], [2, 1], [3, 1], [3, 1], [4, 1], [4, 1], [3, 1], [4, 1]], "1": [[4, 1], [3, 1], [2, 1], [2, 2], [2, 1], [2, 1], [2, 1], [2, 1], [1, 1], [0, 1]]}, "reason": "SAT (Suboptimal): Feasible schedule found, but 6 is the true minimal makespan."}}}, "rotation": {"name": "Cyclic Ring Rotation (4 Robots)", "description": "4x4 ring around a central pillar. 4 robots rotate around the perimeter, requiring simultaneous coordinated movement.", "width": 4, "height": 4, "obstacles": [[1, 1], [1, 2], [2, 1], [2, 2]], "starts": [[0, 1], [1, 3], [3, 2], [2, 0]], "goals": [[3, 2], [2, 0], [0, 1], [1, 3]], "optimal_T": 6, "lower_bound": 6, "horizons": {"4": {"T": 4, "is_sat": false, "solve_time_ms": 0.1, "num_vars": 240, "num_clauses": 100, "reason": "Distance Lower Bound Violated: Minimum BFS distance to reach goals is 6 steps. Impossible in 4 steps."}, "5": {"T": 5, "is_sat": false, "solve_time_ms": 0.1, "num_vars": 288, "num_clauses": 100, "reason": "Distance Lower Bound Violated: Minimum BFS distance to reach goals is 6 steps. Impossible in 5 steps."}, "6": {"T": 6, "is_sat": true, "solve_time_ms": 1.39, "num_vars": 336, "num_clauses": 3628, "clause_stats": {"init_goal": 96, "alo": 28, "amo": 1848, "transitions": 288, "vertex_collisions": 504, "edge_collisions": 864, "total_clauses": 3628, "total_variables": 336}, "paths": {"0": [[0, 1], [0, 2], [0, 3], [1, 3], [2, 3], [3, 3], [3, 2]], "1": [[1, 3], [2, 3], [3, 3], [3, 2], [3, 1], [3, 0], [2, 0]], "2": [[3, 2], [3, 1], [3, 0], [2, 0], [1, 0], [0, 0], [0, 1]], "3": [[2, 0], [1, 0], [0, 0], [0, 1], [0, 2], [0, 3], [1, 3]]}, "reason": "Optimal Makespan T* = 6 Discovered! All agents reach goals conflict-free."}, "7": {"T": 7, "is_sat": true, "solve_time_ms": 1.54, "num_vars": 384, "num_clauses": 4160, "clause_stats": {"init_goal": 96, "alo": 32, "amo": 2112, "transitions": 336, "vertex_collisions": 576, "edge_collisions": 1008, "total_clauses": 4160, "total_variables": 384}, "paths": {"0": [[0, 1], [0, 2], [0, 3], [1, 3], [2, 3], [2, 3], [3, 3], [3, 2]], "1": [[1, 3], [2, 3], [3, 3], [3, 2], [3, 2], [3, 1], [3, 0], [2, 0]], "2": [[3, 2], [3, 1], [3, 0], [2, 0], [1, 0], [0, 0], [0, 0], [0, 1]], "3": [[2, 0], [1, 0], [0, 0], [0, 0], [0, 1], [0, 2], [0, 3], [1, 3]]}, "reason": "SAT (Suboptimal): Feasible schedule found, but 6 is the true minimal makespan."}, "8": {"T": 8, "is_sat": true, "solve_time_ms": 1.78, "num_vars": 432, "num_clauses": 4692, "clause_stats": {"init_goal": 96, "alo": 36, "amo": 2376, "transitions": 384, "vertex_collisions": 648, "edge_collisions": 1152, "total_clauses": 4692, "total_variables": 432}, "paths": {"0": [[0, 1], [0, 2], [0, 3], [0, 3], [0, 3], [1, 3], [2, 3], [3, 3], [3, 2]], "1": [[1, 3], [2, 3], [3, 3], [3, 2], [3, 1], [3, 0], [2, 0], [1, 0], [2, 0]], "2": [[3, 2], [3, 1], [3, 0], [2, 0], [1, 0], [0, 0], [0, 0], [0, 0], [0, 1]], "3": [[2, 0], [1, 0], [0, 0], [0, 0], [0, 0], [0, 1], [0, 2], [0, 3], [1, 3]]}, "reason": "SAT (Suboptimal): Feasible schedule found, but 6 is the true minimal makespan."}, "9": {"T": 9, "is_sat": true, "solve_time_ms": 2.05, "num_vars": 480, "num_clauses": 5224, "clause_stats": {"init_goal": 96, "alo": 40, "amo": 2640, "transitions": 432, "vertex_collisions": 720, "edge_collisions": 1296, "total_clauses": 5224, "total_variables": 480}, "paths": {"0": [[0, 1], [0, 1], [0, 2], [0, 3], [1, 3], [2, 3], [3, 3], [3, 2], [3, 1], [3, 2]], "1": [[1, 3], [2, 3], [3, 3], [3, 2], [3, 1], [3, 0], [2, 0], [1, 0], [1, 0], [2, 0]], "2": [[3, 2], [3, 1], [3, 0], [2, 0], [1, 0], [1, 0], [0, 0], [0, 0], [0, 0], [0, 1]], "3": [[2, 0], [1, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 1], [0, 2], [0, 3], [1, 3]]}, "reason": "SAT (Suboptimal): Feasible schedule found, but 6 is the true minimal makespan."}}}};
+    const ROBOT_COLORS = ["#E63946", "#38BDF8", "#2A9D8F", "#F4A261", "#9B5DE5", "#F15BB5"];
+
+    let currentScenarioKey = "warehouse";
+    let currentT = 7;
+    let currentTime = 0;
+    let isPlaying = false;
+    let playTimer = null;
+    let playInterval = 600;
+
+    const svg = document.getElementById("gridSvg");
+    const timeBadge = document.getElementById("timeBadge");
+    const horizonSlider = document.getElementById("horizonSlider");
+    const sliderMarks = document.getElementById("sliderMarks");
+    const currentTLabel = document.getElementById("currentTLabel");
+    const horizonStatusBadge = document.getElementById("horizonStatusBadge");
+    const horizonPrintBox = document.getElementById("horizonPrintBox");
+    const unsatOverlay = document.getElementById("unsatOverlay");
+    const unsatExplanationText = document.getElementById("unsatExplanationText");
+    const statVars = document.getElementById("statVars");
+    const statClauses = document.getElementById("statClauses");
+    const statTime = document.getElementById("statTime");
+    const statLb = document.getElementById("statLb");
+    const robotCoordsList = document.getElementById("robotCoordsList");
+    const btnPlay = document.getElementById("btnPlay");
+    const btnPrev = document.getElementById("btnPrev");
+    const btnNext = document.getElementById("btnNext");
+    const btnReset = document.getElementById("btnReset");
+    const instantStepBadge = document.getElementById("instantStepBadge");
+    const stepChipsContainer = document.getElementById("stepChipsContainer");
+    const stepStateText = document.getElementById("stepStateText");
+
+    // Dynamic horizon bounds: starts from BFS distance (lower_bound) to sat(optimal) + 2 sat cases
+    function getScenarioHorizonBounds(sc) {
+      const minT = sc.lower_bound;
+      const maxT = sc.optimal_T + 2;
+      return { minT, maxT };
+    }
+
+    function renderSliderMarks(minT, maxT) {
+      sliderMarks.innerHTML = "";
+      for (let t = minT; t <= maxT; t++) {
+        const span = document.createElement("span");
+        span.textContent = t;
+        sliderMarks.appendChild(span);
+      }
+    }
+
+    function selectScenario(key) {
+      pause();
+      currentScenarioKey = key;
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      if (key === "warehouse") document.getElementById("tabWarehouse").classList.add("active");
+      if (key === "corridor") document.getElementById("tabCorridor").classList.add("active");
+      if (key === "rotation") document.getElementById("tabRotation").classList.add("active");
+
+      const sc = DATA[key];
+      const { minT, maxT } = getScenarioHorizonBounds(sc);
+
+      // Configure slider to start from BFS distance up to optimal_T + 2
+      horizonSlider.min = minT;
+      horizonSlider.max = maxT;
+      renderSliderMarks(minT, maxT);
+
+      currentT = sc.optimal_T;
+      horizonSlider.value = currentT;
+      evaluateCurrentHorizon();
+    }
+
+    function adjustHorizon(delta) {
+      setHorizon(currentT + delta);
+    }
+
+    function setHorizon(val) {
+      const sc = DATA[currentScenarioKey];
+      const { minT, maxT } = getScenarioHorizonBounds(sc);
+      currentT = Math.max(minT, Math.min(maxT, val));
+      horizonSlider.value = currentT;
+      evaluateCurrentHorizon();
+    }
+
+    function incrementHorizon() {
+      adjustHorizon(1);
+    }
+
+    function renderHorizonPrintBox() {
+      const sc = DATA[currentScenarioKey];
+      const { minT, maxT } = getScenarioHorizonBounds(sc);
+      horizonPrintBox.innerHTML = "";
+
+      for (let t = minT; t <= maxT; t++) {
+        const row = document.createElement("div");
+        const isCurrent = (t === currentT);
+        row.className = "print-row" + (isCurrent ? " active-row" : "");
+
+        let statusText = "";
+        let statusClass = "";
+
+        if (t < sc.optimal_T) {
+          statusText = "UNSAT";
+          statusClass = "print-unsat";
+        } else if (t === sc.optimal_T) {
+          statusText = "SAT (OPTIMAL)";
+          statusClass = "print-opt";
+        } else {
+          statusText = "SAT";
+          statusClass = "print-sat";
+        }
+
+        row.innerHTML = `
+          <span class="print-t">T = ${t}</span>
+          <span class="print-status ${statusClass}">${statusText}</span>
+        `;
+        row.onclick = () => setHorizon(t);
+        horizonPrintBox.appendChild(row);
+      }
+    }
+
+    function evaluateCurrentHorizon() {
+      pause();
+      currentTime = 0;
+      const sc = DATA[currentScenarioKey];
+      currentTLabel.textContent = currentT;
+
+      const numVertices = sc.width * sc.height - sc.obstacles.length;
+      const defaultVars = sc.starts.length * numVertices * (currentT + 1);
+      const defaultClauses = Math.round(1800 * (currentT / sc.optimal_T));
+
+      const hData = sc.horizons[currentT] || {
+        is_sat: false,
+        num_vars: defaultVars,
+        num_clauses: defaultClauses,
+        solve_time_ms: 0.1,
+        reason: "Distance Lower Bound Violated: Minimum BFS distance to reach goals is " + sc.lower_bound + " steps. Impossible in " + currentT + " steps."
+      };
+
+      statVars.textContent = (hData.num_vars || defaultVars).toLocaleString();
+      statClauses.textContent = (hData.num_clauses || defaultClauses).toLocaleString();
+      statTime.textContent = (hData.solve_time_ms || 0.1) + " ms";
+      statLb.textContent = sc.lower_bound + " steps";
+
+      // Render the box printing for every t in [BFS distance ... Optimal+2]
+      renderHorizonPrintBox();
+
+      if (hData.is_sat) {
+        unsatOverlay.style.display = "none";
+        btnPlay.disabled = false;
+        btnPrev.disabled = false;
+        btnNext.disabled = false;
+        btnReset.disabled = false;
+
+        if (currentT === sc.optimal_T) {
+          horizonStatusBadge.className = "status-pill pill-sat-opt";
+          horizonStatusBadge.textContent = "SAT (OPTIMAL)";
+        } else {
+          horizonStatusBadge.className = "status-pill pill-sat";
+          horizonStatusBadge.textContent = "SAT";
+        }
+
+        renderGrid();
+        renderStepChips();
+        updateTimeFrame(0);
+      } else {
+        unsatOverlay.style.display = "flex";
+        unsatExplanationText.innerHTML = "<strong>CDCL Solver Proof:</strong> " + hData.reason + 
+          "<br/><span style='font-size:12px; color:#94a3b8;'>Checked " + (hData.num_clauses || defaultClauses).toLocaleString() + " clauses in " + (hData.solve_time_ms || 0.1) + " ms without finding any collision-free truth assignment.</span>";
+        
+        btnPlay.disabled = true;
+        btnPrev.disabled = true;
+        btnNext.disabled = true;
+        btnReset.disabled = true;
+
+        horizonStatusBadge.className = "status-pill pill-unsat";
+        horizonStatusBadge.textContent = "UNSAT";
+
+        instantStepBadge.textContent = "UNSAT";
+        stepChipsContainer.innerHTML = "<span style='font-size:11.5px; color:var(--red);'>No collision-free plan physically exists at T=" + currentT + "</span>";
+        stepStateText.textContent = "Solver proved infeasible (conflict-free routing impossible within " + currentT + " steps).";
+        robotCoordsList.innerHTML = "<div style='color:var(--text-muted); font-size:12px; padding:4px 0;'>No active coordinates &bull; Proven UNSAT</div>";
+        renderGrid();
+      }
+    }
+
+    function renderStepChips() {
+      stepChipsContainer.innerHTML = "";
+      for (let s = 0; s <= currentT; s++) {
+        const chip = document.createElement("div");
+        chip.className = "step-chip" + (s === currentTime ? " active" : (s < currentTime ? " completed" : ""));
+        chip.textContent = s;
+        chip.onclick = () => updateTimeFrame(s);
+        stepChipsContainer.appendChild(chip);
+      }
+    }
+
+    function renderGrid() {
+      const sc = DATA[currentScenarioKey];
+      const w = sc.width;
+      const h = sc.height;
+      const cellSize = Math.min(440 / w, 380 / h);
+      const totalSvgW = w * cellSize;
+      const totalSvgH = h * cellSize;
+
+      svg.setAttribute("viewBox", `0 0 ${totalSvgW} ${totalSvgH}`);
+      svg.setAttribute("width", totalSvgW);
+      svg.setAttribute("height", totalSvgH);
+      svg.innerHTML = "";
+
+      // Background grid cells
+      for (let x = 0; x < w; x++) {
+        for (let y = 0; y < h; y++) {
+          const isObs = sc.obstacles.some(o => o[0] === x && o[1] === y);
+          const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+          rect.setAttribute("x", x * cellSize);
+          rect.setAttribute("y", (h - 1 - y) * cellSize);
+          rect.setAttribute("width", cellSize);
+          rect.setAttribute("height", cellSize);
+          rect.setAttribute("fill", isObs ? "#090d16" : "#1e293b");
+          rect.setAttribute("stroke", "#334155");
+          rect.setAttribute("stroke-width", "1");
+          svg.appendChild(rect);
+
+          if (isObs) {
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", x * cellSize);
+            line.setAttribute("y1", (h - 1 - y) * cellSize);
+            line.setAttribute("x2", (x + 1) * cellSize);
+            line.setAttribute("y2", (h - y) * cellSize);
+            line.setAttribute("stroke", "#1e293b");
+            line.setAttribute("stroke-width", "2");
+            svg.appendChild(line);
+          }
+        }
+      }
+
+      // Goal markers
+      sc.goals.forEach((g, i) => {
+        const color = ROBOT_COLORS[i % ROBOT_COLORS.length];
+        const gx = g[0] * cellSize;
+        const gy = (h - 1 - g[1]) * cellSize;
+        
+        const gRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        gRect.setAttribute("x", gx + 4);
+        gRect.setAttribute("y", gy + 4);
+        gRect.setAttribute("width", cellSize - 8);
+        gRect.setAttribute("height", cellSize - 8);
+        gRect.setAttribute("fill", "none");
+        gRect.setAttribute("stroke", color);
+        gRect.setAttribute("stroke-dasharray", "4,3");
+        gRect.setAttribute("stroke-width", "2.2");
+        svg.appendChild(gRect);
+
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", gx + cellSize / 2);
+        text.setAttribute("y", gy + cellSize / 2 + 4);
+        text.setAttribute("text-anchor", "middle");
+        text.setAttribute("font-size", cellSize * 0.28);
+        text.setAttribute("font-weight", "bold");
+        text.setAttribute("fill", color);
+        text.textContent = "G" + i;
+        svg.appendChild(text);
+      });
+
+      // Dynamic Layer for trails & robots
+      const dynamicGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      dynamicGroup.setAttribute("id", "dynamicLayer");
+      svg.appendChild(dynamicGroup);
+    }
+
+    function updateTimeFrame(t) {
+      currentTime = t;
+      timeBadge.textContent = t;
+      instantStepBadge.textContent = "Step " + t + " / " + currentT;
+
+      // Update instant step chips highlight
+      const chips = stepChipsContainer.querySelectorAll(".step-chip");
+      chips.forEach((c, idx) => {
+        c.className = "step-chip" + (idx === t ? " active" : (idx < t ? " completed" : ""));
+      });
+
+      if (t === 0) {
+        stepStateText.textContent = "Agents at starting positions (t = 0)";
+      } else if (t === currentT) {
+        stepStateText.textContent = "All agents successfully reached their goal locations conflict-free!";
+      } else {
+        stepStateText.textContent = "Agents traversing conflict-free trajectories at step " + t + " of " + currentT;
+      }
+
+      const sc = DATA[currentScenarioKey];
+      const hData = sc.horizons[currentT];
+      if (!hData || !hData.is_sat || !hData.paths) return;
+
+      const dynamicGroup = document.getElementById("dynamicLayer");
+      if (!dynamicGroup) return;
+      dynamicGroup.innerHTML = "";
+
+      const w = sc.width;
+      const h = sc.height;
+      const cellSize = Math.min(440 / w, 380 / h);
+
+      let htmlCoords = "";
+
+      // Draw trails
+      Object.keys(hData.paths).forEach(id => {
+        const path = hData.paths[id];
+        const color = ROBOT_COLORS[id % ROBOT_COLORS.length];
+        let d = "";
+        for (let step = 0; step <= t; step++) {
+          const px = path[step][0] * cellSize + cellSize / 2;
+          const py = (h - 1 - path[step][1]) * cellSize + cellSize / 2;
+          d += (step === 0 ? "M " : " L ") + px + " " + py;
+        }
+        const poly = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        poly.setAttribute("d", d);
+        poly.setAttribute("fill", "none");
+        poly.setAttribute("stroke", color);
+        poly.setAttribute("stroke-width", "2.5");
+        poly.setAttribute("opacity", "0.45");
+        dynamicGroup.appendChild(poly);
+      });
+
+      // Draw active robot circles
+      Object.keys(hData.paths).forEach(id => {
+        const pos = hData.paths[id][t];
+        const color = ROBOT_COLORS[id % ROBOT_COLORS.length];
+        const cx = pos[0] * cellSize + cellSize / 2;
+        const cy = (h - 1 - pos[1]) * cellSize + cellSize / 2;
+
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("cx", cx);
+        circle.setAttribute("cy", cy);
+        circle.setAttribute("r", cellSize * 0.36);
+        circle.setAttribute("fill", color);
+        circle.setAttribute("stroke", "#ffffff");
+        circle.setAttribute("stroke-width", "2");
+        dynamicGroup.appendChild(circle);
+
+        const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        txt.setAttribute("x", cx);
+        txt.setAttribute("y", cy + cellSize * 0.1);
+        txt.setAttribute("text-anchor", "middle");
+        txt.setAttribute("font-size", cellSize * 0.28);
+        txt.setAttribute("font-weight", "bold");
+        txt.setAttribute("fill", "#ffffff");
+        txt.textContent = "R" + id;
+        dynamicGroup.appendChild(txt);
+
+        htmlCoords += `
+          <div class="robot-row">
+            <span><span class="robot-dot" style="background:${color}"></span>Robot ${id}</span>
+            <span style="font-family:monospace; color:var(--cyan); font-weight:bold;">(${pos[0]}, ${pos[1]})</span>
+          </div>
+        `;
+      });
+
+      robotCoordsList.innerHTML = htmlCoords;
+    }
+
+    function stepTime(delta) {
+      if (currentTime + delta >= 0 && currentTime + delta <= currentT) {
+        updateTimeFrame(currentTime + delta);
+      }
+    }
+
+    function resetTime() {
+      pause();
+      updateTimeFrame(0);
+    }
+
+    function togglePlay() {
+      if (isPlaying) pause();
+      else play();
+    }
+
+    function play() {
+      const sc = DATA[currentScenarioKey];
+      const hData = sc.horizons[currentT];
+      if (!hData || !hData.is_sat) return;
+
+      isPlaying = true;
+      btnPlay.textContent = "⏸ Pause";
+      if (currentTime >= currentT) currentTime = 0;
+      playTimer = setInterval(() => {
+        if (currentTime < currentT) {
+          updateTimeFrame(currentTime + 1);
+        } else {
+          pause();
+        }
+      }, playInterval);
+    }
+
+    function pause() {
+      isPlaying = false;
+      btnPlay.textContent = "▶ Play";
+      if (playTimer) clearInterval(playTimer);
+    }
+
+    function changeSpeed(val) {
+      playInterval = parseInt(val);
+      if (isPlaying) {
+        pause();
+        play();
+      }
+    }
+
+    // Auto-BMC search demonstration from BFS distance to Optimal T*
+    function runAutoBmc() {
+      pause();
+      const sc = DATA[currentScenarioKey];
+      const startH = sc.lower_bound;
+      const targetH = sc.optimal_T;
+      let testH = startH;
+
+      function bmcStep() {
+        setHorizon(testH);
+        if (testH < targetH) {
+          testH++;
+          setTimeout(bmcStep, 900);
+        } else {
+          setTimeout(() => {
+            play();
+          }, 600);
+        }
+      }
+      bmcStep();
+    }
+
+    // Initialize
+    selectScenario("warehouse");
+  </script>
+</body>
+</html>
