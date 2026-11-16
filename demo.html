@@ -513,18 +513,23 @@
     <!-- RIGHT: Playback with Instant Steps, Live Coordinates, and CNF Footprint -->
     <div class="right-panel">
       
+      <!-- Section 0: Instance Parameters -->
+      <div class="section-card playback-card">
+          <h3>Instance Parameters</h3>
+          <div><strong>Problem:</strong> <span id="instanceName">-</span></div>
+          <div><strong>Grid Size:</strong> <span id="instanceGridSize">-</span></div>
+          <div><strong>Free Cells:</strong> <span id="instanceFreeCells">-</span></div>
+          <div><strong>Static Obstacles:</strong> <span id="instanceObstacles">-</span></div>
+          <div><strong>Active Robots:</strong> <span id="instanceRobots">-</span></div>
+          <div><strong>SAT Optimal Makespan T*: </strong><span id="instanceOptimalT" style="color: #38bdf8; font-weight: bold;">-</span></div>
+          <div><strong>Lower Bound: </strong><span id="instanceLowerBound">-</span></div>
+      </div>
+
       <!-- Section 1: Playback Controls & Instant Step Monitor (replaces BMC Controller) -->
       <div class="section-card playback-card">
         <h3>
           <span>Playback Controls</span>
-          <div style="font-size: 11px; color: var(--text-muted); text-transform: none; font-weight: normal; display: flex; align-items: center; gap: 6px;">
-            Speed: 
-            <select id="speedSelect" onchange="changeSpeed(this.value)" style="background:#1e293b; color:#fff; border:1px solid #334155; border-radius:4px; padding:2px 6px; font-size: 11px;">
-              <option value="1000">0.5x</option>
-              <option value="600" selected>1.0x</option>
-              <option value="350">1.8x</option>
-            </select>
-          </div>
+          <div style="font-size: 11px; color: var(--text-muted); text-transform: none; font-weight: normal; display: flex; align-items: center; gap: 6px;"></div>
         </h3>
 
         <!-- Playback button group -->
@@ -582,7 +587,463 @@
   </div>
 
   <script>
-    const DATA = {"warehouse": {"name": "Warehouse Bottleneck (4 Robots)", "description": "6x6 warehouse grid with 4 storage racks. Robots 0 & 1 swap opposite ends of the central horizontal corridor while Robots 2 & 3 cross the vertical corridor simultaneously.", "width": 6, "height": 6, "obstacles": [[4, 4], [1, 2], [1, 5], [1, 1], [1, 4], [4, 2], [4, 5], [4, 1]], "starts": [[0, 3], [5, 3], [2, 0], [3, 5]], "goals": [[5, 3], [0, 3], [2, 5], [3, 0]], "optimal_T": 7, "lower_bound": 5, "horizons": {"4": {"T": 4, "is_sat": false, "solve_time_ms": 0.1, "num_vars": 560, "num_clauses": 100, "reason": "Distance Lower Bound Violated: Minimum BFS distance to reach goals is 5 steps. Impossible in 4 steps."}, "5": {"T": 5, "is_sat": false, "solve_time_ms": 4.32, "num_vars": 672, "num_clauses": 12928, "clause_stats": {"init_goal": 224, "alo": 24, "amo": 9072, "transitions": 560, "vertex_collisions": 1008, "edge_collisions": 2040, "total_clauses": 12928, "total_variables": 672}, "paths": null, "reason": "UNSAT: The CDCL solver proved that conflict-free routing is physically impossible within 5 steps due to corridor/intersection contention."}, "6": {"T": 6, "is_sat": false, "solve_time_ms": 5.03, "num_vars": 784, "num_clauses": 15132, "clause_stats": {"init_goal": 224, "alo": 28, "amo": 10584, "transitions": 672, "vertex_collisions": 1176, "edge_collisions": 2448, "total_clauses": 15132, "total_variables": 784}, "paths": null, "reason": "UNSAT: The CDCL solver proved that conflict-free routing is physically impossible within 6 steps due to corridor/intersection contention."}, "7": {"T": 7, "is_sat": true, "solve_time_ms": 6.18, "num_vars": 896, "num_clauses": 17336, "clause_stats": {"init_goal": 224, "alo": 32, "amo": 12096, "transitions": 784, "vertex_collisions": 1344, "edge_collisions": 2856, "total_clauses": 17336, "total_variables": 896}, "paths": {"0": [[0, 3], [1, 3], [2, 3], [2, 2], [3, 2], [3, 3], [4, 3], [5, 3]], "1": [[5, 3], [4, 3], [3, 3], [3, 3], [2, 3], [1, 3], [1, 3], [0, 3]], "2": [[2, 0], [3, 0], [3, 1], [3, 2], [3, 3], [2, 3], [2, 4], [2, 5]], "3": [[3, 5], [2, 5], [2, 4], [2, 3], [2, 2], [2, 1], [2, 0], [3, 0]]}, "reason": "Optimal Makespan T* = 7 Discovered! All agents reach goals conflict-free."}, "8": {"T": 8, "is_sat": true, "solve_time_ms": 6.6, "num_vars": 1008, "num_clauses": 19540, "clause_stats": {"init_goal": 224, "alo": 36, "amo": 13608, "transitions": 896, "vertex_collisions": 1512, "edge_collisions": 3264, "total_clauses": 19540, "total_variables": 1008}, "paths": {"0": [[0, 3], [1, 3], [2, 3], [3, 3], [4, 3], [3, 3], [3, 3], [4, 3], [5, 3]], "1": [[5, 3], [4, 3], [3, 3], [3, 2], [3, 3], [2, 3], [1, 3], [1, 3], [0, 3]], "2": [[2, 0], [2, 1], [2, 2], [2, 2], [3, 2], [2, 2], [2, 3], [2, 4], [2, 5]], "3": [[3, 5], [2, 5], [2, 4], [2, 3], [2, 2], [2, 1], [2, 0], [2, 0], [3, 0]]}, "reason": "SAT (Suboptimal): Feasible schedule found, but 7 is the true minimal makespan."}, "9": {"T": 9, "is_sat": true, "solve_time_ms": 7.48, "num_vars": 1120, "num_clauses": 21744, "clause_stats": {"init_goal": 224, "alo": 40, "amo": 15120, "transitions": 1008, "vertex_collisions": 1680, "edge_collisions": 3672, "total_clauses": 21744, "total_variables": 1120}, "paths": {"0": [[0, 3], [1, 3], [2, 3], [2, 2], [3, 2], [3, 2], [3, 3], [4, 3], [5, 3], [5, 3]], "1": [[5, 3], [5, 3], [4, 3], [3, 3], [2, 3], [1, 3], [0, 3], [1, 3], [0, 3], [0, 3]], "2": [[2, 0], [2, 1], [2, 2], [3, 2], [3, 3], [2, 3], [1, 3], [2, 3], [2, 4], [2, 5]], "3": [[3, 5], [2, 5], [2, 4], [2, 3], [2, 2], [2, 1], [2, 0], [1, 0], [2, 0], [3, 0]]}, "reason": "SAT (Suboptimal): Feasible schedule found, but 7 is the true minimal makespan."}}}, "corridor": {"name": "Narrow Corridor Alcove Swap (Deadlock Benchmark)", "description": "5x3 grid with a width-1 corridor and an alcove at (2, 2). Prioritized A* fails/deadlocks because Robot 0 claims the corridor and parks on the goal, whereas SAT discovers the coordinated sidestep maneuver into the alcove.", "width": 5, "height": 3, "obstacles": [[1, 2], [4, 0], [0, 0], [2, 0], [4, 2], [3, 0], [0, 2], [1, 0], [3, 2]], "starts": [[0, 1], [4, 1]], "goals": [[4, 1], [0, 1]], "optimal_T": 6, "lower_bound": 4, "horizons": {"3": {"T": 3, "is_sat": false, "solve_time_ms": 0.1, "num_vars": 48, "num_clauses": 100, "reason": "Distance Lower Bound Violated: Minimum BFS distance to reach goals is 4 steps. Impossible in 3 steps."}, "4": {"T": 4, "is_sat": false, "solve_time_ms": 0.16, "num_vars": 60, "num_clauses": 302, "clause_stats": {"init_goal": 24, "alo": 10, "amo": 150, "transitions": 48, "vertex_collisions": 30, "edge_collisions": 40, "total_clauses": 302, "total_variables": 60}, "paths": null, "reason": "UNSAT: The CDCL solver proved that conflict-free routing is physically impossible within 4 steps due to corridor/intersection contention."}, "5": {"T": 5, "is_sat": false, "solve_time_ms": 0.2, "num_vars": 72, "num_clauses": 362, "clause_stats": {"init_goal": 24, "alo": 12, "amo": 180, "transitions": 60, "vertex_collisions": 36, "edge_collisions": 50, "total_clauses": 362, "total_variables": 72}, "paths": null, "reason": "UNSAT: The CDCL solver proved that conflict-free routing is physically impossible within 5 steps due to corridor/intersection contention."}, "6": {"T": 6, "is_sat": true, "solve_time_ms": 0.21, "num_vars": 84, "num_clauses": 422, "clause_stats": {"init_goal": 24, "alo": 14, "amo": 210, "transitions": 72, "vertex_collisions": 42, "edge_collisions": 60, "total_clauses": 422, "total_variables": 84}, "paths": {"0": [[0, 1], [0, 1], [1, 1], [2, 1], [3, 1], [3, 1], [4, 1]], "1": [[4, 1], [3, 1], [2, 1], [2, 2], [2, 1], [1, 1], [0, 1]]}, "reason": "Optimal Makespan T* = 6 Discovered! All agents reach goals conflict-free."}, "7": {"T": 7, "is_sat": true, "solve_time_ms": 0.41, "num_vars": 96, "num_clauses": 482, "clause_stats": {"init_goal": 24, "alo": 16, "amo": 240, "transitions": 84, "vertex_collisions": 48, "edge_collisions": 70, "total_clauses": 482, "total_variables": 96}, "paths": {"0": [[0, 1], [1, 1], [1, 1], [2, 1], [3, 1], [2, 1], [3, 1], [4, 1]], "1": [[4, 1], [3, 1], [2, 1], [2, 2], [2, 1], [1, 1], [0, 1], [0, 1]]}, "reason": "SAT (Suboptimal): Feasible schedule found, but 6 is the true minimal makespan."}, "8": {"T": 8, "is_sat": true, "solve_time_ms": 0.31, "num_vars": 108, "num_clauses": 542, "clause_stats": {"init_goal": 24, "alo": 18, "amo": 270, "transitions": 96, "vertex_collisions": 54, "edge_collisions": 80, "total_clauses": 542, "total_variables": 108}, "paths": {"0": [[0, 1], [1, 1], [1, 1], [2, 1], [3, 1], [3, 1], [4, 1], [3, 1], [4, 1]], "1": [[4, 1], [3, 1], [2, 1], [2, 2], [2, 1], [2, 1], [2, 1], [1, 1], [0, 1]]}, "reason": "SAT (Suboptimal): Feasible schedule found, but 6 is the true minimal makespan."}, "9": {"T": 9, "is_sat": true, "solve_time_ms": 0.34, "num_vars": 120, "num_clauses": 602, "clause_stats": {"init_goal": 24, "alo": 20, "amo": 300, "transitions": 108, "vertex_collisions": 60, "edge_collisions": 90, "total_clauses": 602, "total_variables": 120}, "paths": {"0": [[0, 1], [1, 1], [1, 1], [2, 1], [3, 1], [3, 1], [4, 1], [4, 1], [3, 1], [4, 1]], "1": [[4, 1], [3, 1], [2, 1], [2, 2], [2, 1], [2, 1], [2, 1], [2, 1], [1, 1], [0, 1]]}, "reason": "SAT (Suboptimal): Feasible schedule found, but 6 is the true minimal makespan."}}}, "rotation": {"name": "Cyclic Ring Rotation (4 Robots)", "description": "4x4 ring around a central pillar. 4 robots rotate around the perimeter, requiring simultaneous coordinated movement.", "width": 4, "height": 4, "obstacles": [[1, 1], [1, 2], [2, 1], [2, 2]], "starts": [[0, 1], [1, 3], [3, 2], [2, 0]], "goals": [[3, 2], [2, 0], [0, 1], [1, 3]], "optimal_T": 6, "lower_bound": 6, "horizons": {"4": {"T": 4, "is_sat": false, "solve_time_ms": 0.1, "num_vars": 240, "num_clauses": 100, "reason": "Distance Lower Bound Violated: Minimum BFS distance to reach goals is 6 steps. Impossible in 4 steps."}, "5": {"T": 5, "is_sat": false, "solve_time_ms": 0.1, "num_vars": 288, "num_clauses": 100, "reason": "Distance Lower Bound Violated: Minimum BFS distance to reach goals is 6 steps. Impossible in 5 steps."}, "6": {"T": 6, "is_sat": true, "solve_time_ms": 1.39, "num_vars": 336, "num_clauses": 3628, "clause_stats": {"init_goal": 96, "alo": 28, "amo": 1848, "transitions": 288, "vertex_collisions": 504, "edge_collisions": 864, "total_clauses": 3628, "total_variables": 336}, "paths": {"0": [[0, 1], [0, 2], [0, 3], [1, 3], [2, 3], [3, 3], [3, 2]], "1": [[1, 3], [2, 3], [3, 3], [3, 2], [3, 1], [3, 0], [2, 0]], "2": [[3, 2], [3, 1], [3, 0], [2, 0], [1, 0], [0, 0], [0, 1]], "3": [[2, 0], [1, 0], [0, 0], [0, 1], [0, 2], [0, 3], [1, 3]]}, "reason": "Optimal Makespan T* = 6 Discovered! All agents reach goals conflict-free."}, "7": {"T": 7, "is_sat": true, "solve_time_ms": 1.54, "num_vars": 384, "num_clauses": 4160, "clause_stats": {"init_goal": 96, "alo": 32, "amo": 2112, "transitions": 336, "vertex_collisions": 576, "edge_collisions": 1008, "total_clauses": 4160, "total_variables": 384}, "paths": {"0": [[0, 1], [0, 2], [0, 3], [1, 3], [2, 3], [2, 3], [3, 3], [3, 2]], "1": [[1, 3], [2, 3], [3, 3], [3, 2], [3, 2], [3, 1], [3, 0], [2, 0]], "2": [[3, 2], [3, 1], [3, 0], [2, 0], [1, 0], [0, 0], [0, 0], [0, 1]], "3": [[2, 0], [1, 0], [0, 0], [0, 0], [0, 1], [0, 2], [0, 3], [1, 3]]}, "reason": "SAT (Suboptimal): Feasible schedule found, but 6 is the true minimal makespan."}, "8": {"T": 8, "is_sat": true, "solve_time_ms": 1.78, "num_vars": 432, "num_clauses": 4692, "clause_stats": {"init_goal": 96, "alo": 36, "amo": 2376, "transitions": 384, "vertex_collisions": 648, "edge_collisions": 1152, "total_clauses": 4692, "total_variables": 432}, "paths": {"0": [[0, 1], [0, 2], [0, 3], [0, 3], [0, 3], [1, 3], [2, 3], [3, 3], [3, 2]], "1": [[1, 3], [2, 3], [3, 3], [3, 2], [3, 1], [3, 0], [2, 0], [1, 0], [2, 0]], "2": [[3, 2], [3, 1], [3, 0], [2, 0], [1, 0], [0, 0], [0, 0], [0, 0], [0, 1]], "3": [[2, 0], [1, 0], [0, 0], [0, 0], [0, 0], [0, 1], [0, 2], [0, 3], [1, 3]]}, "reason": "SAT (Suboptimal): Feasible schedule found, but 6 is the true minimal makespan."}, "9": {"T": 9, "is_sat": true, "solve_time_ms": 2.05, "num_vars": 480, "num_clauses": 5224, "clause_stats": {"init_goal": 96, "alo": 40, "amo": 2640, "transitions": 432, "vertex_collisions": 720, "edge_collisions": 1296, "total_clauses": 5224, "total_variables": 480}, "paths": {"0": [[0, 1], [0, 1], [0, 2], [0, 3], [1, 3], [2, 3], [3, 3], [3, 2], [3, 1], [3, 2]], "1": [[1, 3], [2, 3], [3, 3], [3, 2], [3, 1], [3, 0], [2, 0], [1, 0], [1, 0], [2, 0]], "2": [[3, 2], [3, 1], [3, 0], [2, 0], [1, 0], [1, 0], [0, 0], [0, 0], [0, 0], [0, 1]], "3": [[2, 0], [1, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 1], [0, 2], [0, 3], [1, 3]]}, "reason": "SAT (Suboptimal): Feasible schedule found, but 6 is the true minimal makespan."}}}};
+    const DATA = {
+        "warehouse": {
+            "name": "Warehouse Bottleneck (4 Robots)",
+            "description": "6x6 warehouse grid with 4 storage racks. Robots 0 & 1 swap opposite ends of the central horizontal corridor while Robots 2 & 3 cross the vertical corridor simultaneously.",
+            "width": 6,
+            "height": 6,
+            "obstacles": [
+                [4, 4],
+                [1, 2],
+                [1, 5],
+                [1, 1],
+                [1, 4],
+                [4, 2],
+                [4, 5],
+                [4, 1]
+            ],
+            "starts": [
+                [0, 3],
+                [5, 3],
+                [2, 0],
+                [3, 5]
+            ],
+            "goals": [
+                [5, 3],
+                [0, 3],
+                [2, 5],
+                [3, 0]
+            ],
+            "optimal_T": 7,
+            "lower_bound": 5,
+            "horizons": {
+                "4": {
+                    "T": 4,
+                    "is_sat": false,
+                    "solve_time_ms": 0.1,
+                    "num_vars": 560,
+                    "num_clauses": 100,
+                    "reason": "Distance Lower Bound Violated: Minimum BFS distance to reach goals is 5 steps. Impossible in 4 steps."
+                },
+                "5": {
+                    "T": 5,
+                    "is_sat": false,
+                    "solve_time_ms": 4.32,
+                    "num_vars": 672,
+                    "num_clauses": 12928,
+                    "clause_stats": {
+                        "init_goal": 224,
+                        "alo": 24,
+                        "amo": 9072,
+                        "transitions": 560,
+                        "vertex_collisions": 1008,
+                        "edge_collisions": 2040,
+                        "total_clauses": 12928,
+                        "total_variables": 672
+                    },
+                    "paths": null,
+                    "reason": "UNSAT: The CDCL solver proved that conflict-free routing is physically impossible within 5 steps due to corridor/intersection contention."
+                },
+                "6": {
+                    "T": 6,
+                    "is_sat": false,
+                    "solve_time_ms": 5.03,
+                    "num_vars": 784,
+                    "num_clauses": 15132,
+                    "clause_stats": {
+                        "init_goal": 224,
+                        "alo": 28,
+                        "amo": 10584,
+                        "transitions": 672,
+                        "vertex_collisions": 1176,
+                        "edge_collisions": 2448,
+                        "total_clauses": 15132,
+                        "total_variables": 784
+                    },
+                    "paths": null,
+                    "reason": "UNSAT: The CDCL solver proved that conflict-free routing is physically impossible within 6 steps due to corridor/intersection contention."
+                },
+                "7": {
+                    "T": 7,
+                    "is_sat": true,
+                    "solve_time_ms": 6.18,
+                    "num_vars": 896,
+                    "num_clauses": 17336,
+                    "clause_stats": {
+                        "init_goal": 224,
+                        "alo": 32,
+                        "amo": 12096,
+                        "transitions": 784,
+                        "vertex_collisions": 1344,
+                        "edge_collisions": 2856,
+                        "total_clauses": 17336,
+                        "total_variables": 896
+                    },
+                    "paths": {
+                        "0": [[0, 3], [1, 3], [2, 3], [2, 2], [3, 2], [3, 3], [4, 3], [5, 3]],
+                        "1": [[5, 3], [4, 3], [3, 3], [3, 3], [2, 3], [1, 3], [1, 3], [0, 3]],
+                        "2": [[2, 0], [3, 0], [3, 1], [3, 2], [3, 3], [2, 3], [2, 4], [2, 5]],
+                        "3": [[3, 5], [2, 5], [2, 4], [2, 3], [2, 2], [2, 1], [2, 0], [3, 0]]
+                    },
+                    "reason": "Optimal Makespan T* = 7 Discovered! All agents reach goals conflict-free."
+                },
+                "8": {
+                    "T": 8,
+                    "is_sat": true,
+                    "solve_time_ms": 6.6,
+                    "num_vars": 1008,
+                    "num_clauses": 19540,
+                    "clause_stats": {
+                        "init_goal": 224,
+                        "alo": 36,
+                        "amo": 13608,
+                        "transitions": 896,
+                        "vertex_collisions": 1512,
+                        "edge_collisions": 3264,
+                        "total_clauses": 19540,
+                        "total_variables": 1008
+                    },
+                    "paths": {
+                        "0": [[0, 3], [1, 3], [2, 3], [3, 3], [4, 3], [3, 3], [3, 3], [4, 3], [5, 3]],
+                        "1": [[5, 3], [4, 3], [3, 3], [3, 2], [3, 3], [2, 3], [1, 3], [1, 3], [0, 3]],
+                        "2": [[2, 0], [2, 1], [2, 2], [2, 2], [3, 2], [2, 2], [2, 3], [2, 4], [2, 5]],
+                        "3": [[3, 5], [2, 5], [2, 4], [2, 3], [2, 2], [2, 1], [2, 0], [2, 0], [3, 0]]
+                    },
+                    "reason": "SAT (Suboptimal): Feasible schedule found, but 7 is the true minimal makespan."
+                },
+                "9": {
+                    "T": 9,
+                    "is_sat": true,
+                    "solve_time_ms": 7.48,
+                    "num_vars": 1120,
+                    "num_clauses": 21744,
+                    "clause_stats": {
+                        "init_goal": 224,
+                        "alo": 40,
+                        "amo": 15120,
+                        "transitions": 1008,
+                        "vertex_collisions": 1680,
+                        "edge_collisions": 3672,
+                        "total_clauses": 21744,
+                        "total_variables": 1120
+                    },
+                    "paths": {
+                        "0": [[0, 3], [1, 3], [2, 3], [2, 2], [3, 2], [3, 2], [3, 3], [4, 3], [5, 3], [5, 3]],
+                        "1": [[5, 3], [5, 3], [4, 3], [3, 3], [2, 3], [1, 3], [0, 3], [1, 3], [0, 3], [0, 3]],
+                        "2": [[2, 0], [2, 1], [2, 2], [3, 2], [3, 3], [2, 3], [1, 3], [2, 3], [2, 4], [2, 5]],
+                        "3": [[3, 5], [2, 5], [2, 4], [2, 3], [2, 2], [2, 1], [2, 0], [1, 0], [2, 0], [3, 0]]
+                    },
+                    "reason": "SAT (Suboptimal): Feasible schedule found, but 7 is the true minimal makespan."
+                }
+            }
+        },
+    
+        "corridor": {
+            "name": "Narrow Corridor Alcove Swap (Deadlock Benchmark)",
+            "description": "5x3 grid with a width-1 corridor and an alcove at (2, 2). Prioritized A* fails/deadlocks because Robot 0 claims the corridor and parks on the goal, whereas SAT discovers the coordinated sidestep maneuver into the alcove.",
+            "width": 5,
+            "height": 3,
+            "obstacles": [
+                [1, 2],
+                [4, 0],
+                [0, 0],
+                [2, 0],
+                [4, 2],
+                [3, 0],
+                [0, 2],
+                [1, 0],
+                [3, 2]
+            ],
+            "starts": [
+                [0, 1],
+                [4, 1]
+            ],
+            "goals": [
+                [4, 1],
+                [0, 1]
+            ],
+            "optimal_T": 6,
+            "lower_bound": 4,
+            "horizons": {
+                "3": {
+                    "T": 3,
+                    "is_sat": false,
+                    "solve_time_ms": 0.1,
+                    "num_vars": 48,
+                    "num_clauses": 100,
+                    "reason": "Distance Lower Bound Violated: Minimum BFS distance to reach goals is 4 steps. Impossible in 3 steps."
+                },
+                "4": {
+                    "T": 4,
+                    "is_sat": false,
+                    "solve_time_ms": 0.16,
+                    "num_vars": 60,
+                    "num_clauses": 302,
+                    "clause_stats": {
+                        "init_goal": 24,
+                        "alo": 10,
+                        "amo": 150,
+                        "transitions": 48,
+                        "vertex_collisions": 30,
+                        "edge_collisions": 40,
+                        "total_clauses": 302,
+                        "total_variables": 60
+                    },
+                    "paths": null,
+                    "reason": "UNSAT: The CDCL solver proved that conflict-free routing is physically impossible within 4 steps due to corridor/intersection contention."
+                },
+                "5": {
+                    "T": 5,
+                    "is_sat": false,
+                    "solve_time_ms": 0.2,
+                    "num_vars": 72,
+                    "num_clauses": 362,
+                    "clause_stats": {
+                        "init_goal": 24,
+                        "alo": 12,
+                        "amo": 180,
+                        "transitions": 60,
+                        "vertex_collisions": 36,
+                        "edge_collisions": 50,
+                        "total_clauses": 362,
+                        "total_variables": 72
+                    },
+                    "paths": null,
+                    "reason": "UNSAT: The CDCL solver proved that conflict-free routing is physically impossible within 5 steps due to corridor/intersection contention."
+                },
+                "6": {
+                    "T": 6,
+                    "is_sat": true,
+                    "solve_time_ms": 0.21,
+                    "num_vars": 84,
+                    "num_clauses": 422,
+                    "clause_stats": {
+                        "init_goal": 24,
+                        "alo": 14,
+                        "amo": 210,
+                        "transitions": 72,
+                        "vertex_collisions": 42,
+                        "edge_collisions": 60,
+                        "total_clauses": 422,
+                        "total_variables": 84
+                    },
+                    "paths": {
+                        "0": [[0, 1], [0, 1], [1, 1], [2, 1], [3, 1], [3, 1], [4, 1]],
+                        "1": [[4, 1], [3, 1], [2, 1], [2, 2], [2, 1], [1, 1], [0, 1]]
+                    },
+                    "reason": "Optimal Makespan T* = 6 Discovered! All agents reach goals conflict-free."
+                },
+                "7": {
+                    "T": 7,
+                    "is_sat": true,
+                    "solve_time_ms": 0.41,
+                    "num_vars": 96,
+                    "num_clauses": 482,
+                    "clause_stats": {
+                        "init_goal": 24,
+                        "alo": 16,
+                        "amo": 240,
+                        "transitions": 84,
+                        "vertex_collisions": 48,
+                        "edge_collisions": 70,
+                        "total_clauses": 482,
+                        "total_variables": 96
+                    },
+                    "paths": {
+                        "0": [[0, 1], [1, 1], [1, 1], [2, 1], [3, 1], [2, 1], [3, 1], [4, 1]],
+                        "1": [[4, 1], [3, 1], [2, 1], [2, 2], [2, 1], [1, 1], [0, 1], [0, 1]]
+                    },
+                    "reason": "SAT (Suboptimal): Feasible schedule found, but 6 is the true minimal makespan."
+                },
+                "8": {
+                    "T": 8,
+                    "is_sat": true,
+                    "solve_time_ms": 0.31,
+                    "num_vars": 108,
+                    "num_clauses": 542,
+                    "clause_stats": {
+                        "init_goal": 24,
+                        "alo": 18,
+                        "amo": 270,
+                        "transitions": 96,
+                        "vertex_collisions": 54,
+                        "edge_collisions": 80,
+                        "total_clauses": 542,
+                        "total_variables": 108
+                    },
+                    "paths": {
+                        "0": [[0, 1], [1, 1], [1, 1], [2, 1], [3, 1], [3, 1], [4, 1], [3, 1], [4, 1]],
+                        "1": [[4, 1], [3, 1], [2, 1], [2, 2], [2, 1], [2, 1], [2, 1], [1, 1], [0, 1]]
+                    },
+                    "reason": "SAT (Suboptimal): Feasible schedule found, but 6 is the true minimal makespan."
+                },
+                "9": {
+                    "T": 9,
+                    "is_sat": true,
+                    "solve_time_ms": 0.34,
+                    "num_vars": 120,
+                    "num_clauses": 602,
+                    "clause_stats": {
+                        "init_goal": 24,
+                        "alo": 20,
+                        "amo": 300,
+                        "transitions": 108,
+                        "vertex_collisions": 60,
+                        "edge_collisions": 90,
+                        "total_clauses": 602,
+                        "total_variables": 120
+                    },
+                    "paths": {
+                        "0": [[0, 1], [1, 1], [1, 1], [2, 1], [3, 1], [3, 1], [4, 1], [4, 1], [3, 1], [4, 1]],
+                        "1": [[4, 1], [3, 1], [2, 1], [2, 2], [2, 1], [2, 1], [2, 1], [2, 1], [1, 1], [0, 1]]
+                    },
+                    "reason": "SAT (Suboptimal): Feasible schedule found, but 6 is the true minimal makespan."
+                }
+            }
+        },
+    
+        "rotation": {
+            "name": "Cyclic Ring Rotation (4 Robots)",
+            "description": "4x4 ring around a central pillar. 4 robots rotate around the perimeter, requiring simultaneous coordinated movement.",
+            "width": 4,
+            "height": 4,
+            "obstacles": [
+                [1, 1],
+                [1, 2],
+                [2, 1],
+                [2, 2]
+            ],
+            "starts": [
+                [0, 1],
+                [1, 3],
+                [3, 2],
+                [2, 0]
+            ],
+            "goals": [
+                [3, 2],
+                [2, 0],
+                [0, 1],
+                [1, 3]
+            ],
+            "optimal_T": 6,
+            "lower_bound": 6,
+            "horizons": {
+                "4": {
+                    "T": 4,
+                    "is_sat": false,
+                    "solve_time_ms": 0.1,
+                    "num_vars": 240,
+                    "num_clauses": 100,
+                    "reason": "Distance Lower Bound Violated: Minimum BFS distance to reach goals is 6 steps. Impossible in 4 steps."
+                },
+                "5": {
+                    "T": 5,
+                    "is_sat": false,
+                    "solve_time_ms": 0.1,
+                    "num_vars": 288,
+                    "num_clauses": 100,
+                    "reason": "Distance Lower Bound Violated: Minimum BFS distance to reach goals is 6 steps. Impossible in 5 steps."
+                },
+                "6": {
+                    "T": 6,
+                    "is_sat": true,
+                    "solve_time_ms": 1.39,
+                    "num_vars": 336,
+                    "num_clauses": 3628,
+                    "clause_stats": {
+                        "init_goal": 96,
+                        "alo": 28,
+                        "amo": 1848,
+                        "transitions": 288,
+                        "vertex_collisions": 504,
+                        "edge_collisions": 864,
+                        "total_clauses": 3628,
+                        "total_variables": 336
+                    },
+                    "paths": {
+                        "0": [[0, 1], [0, 2], [0, 3], [1, 3], [2, 3], [3, 3], [3, 2]],
+                        "1": [[1, 3], [2, 3], [3, 3], [3, 2], [3, 1], [3, 0], [2, 0]],
+                        "2": [[3, 2], [3, 1], [3, 0], [2, 0], [1, 0], [0, 0], [0, 1]],
+                        "3": [[2, 0], [1, 0], [0, 0], [0, 1], [0, 2], [0, 3], [1, 3]]
+                    },
+                    "reason": "Optimal Makespan T* = 6 Discovered! All agents reach goals conflict-free."
+                },
+                "7": {
+                    "T": 7,
+                    "is_sat": true,
+                    "solve_time_ms": 1.54,
+                    "num_vars": 384,
+                    "num_clauses": 4160,
+                    "clause_stats": {
+                        "init_goal": 96,
+                        "alo": 32,
+                        "amo": 2112,
+                        "transitions": 336,
+                        "vertex_collisions": 576,
+                        "edge_collisions": 1008,
+                        "total_clauses": 4160,
+                        "total_variables": 384
+                    },
+                    "paths": {
+                        "0": [[0, 1], [0, 2], [0, 3], [1, 3], [2, 3], [2, 3], [3, 3], [3, 2]],
+                        "1": [[1, 3], [2, 3], [3, 3], [3, 2], [3, 2], [3, 1], [3, 0], [2, 0]],
+                        "2": [[3, 2], [3, 1], [3, 0], [2, 0], [1, 0], [0, 0], [0, 0], [0, 1]],
+                        "3": [[2, 0], [1, 0], [0, 0], [0, 0], [0, 0], [0, 1], [0, 2], [0, 3], [1, 3]]
+                    },
+                    "reason": "SAT (Suboptimal): Feasible schedule found, but 6 is the true minimal makespan."
+                },
+                "8": {
+                    "T": 8,
+                    "is_sat": true,
+                    "solve_time_ms": 1.78,
+                    "num_vars": 432,
+                    "num_clauses": 4692,
+                    "clause_stats": {
+                        "init_goal": 96,
+                        "alo": 36,
+                        "amo": 2376,
+                        "transitions": 384,
+                        "vertex_collisions": 648,
+                        "edge_collisions": 1152,
+                        "total_clauses": 4692,
+                        "total_variables": 432
+                    },
+                    "paths": {
+                        "0": [[0, 1], [0, 2], [0, 3], [0, 3], [0, 3], [1, 3], [2, 3], [3, 3], [3, 2]],
+                        "1": [[1, 3], [2, 3], [3, 3], [3, 2], [3, 1], [3, 0], [2, 0], [1, 0], [2, 0]],
+                        "2": [[3, 2], [3, 1], [3, 0], [2, 0], [1, 0], [0, 0], [0, 0], [0, 0], [0, 1]],
+                        "3": [[2, 0], [1, 0], [0, 0], [0, 0], [0, 0], [0, 1], [0, 2], [0, 3], [1, 3]]
+                    },
+                    "reason": "SAT (Suboptimal): Feasible schedule found, but 6 is the true minimal makespan."
+                },
+                "9": {
+                    "T": 9,
+                    "is_sat": true,
+                    "solve_time_ms": 2.05,
+                    "num_vars": 480,
+                    "num_clauses": 5224,
+                    "clause_stats": {
+                        "init_goal": 96,
+                        "alo": 40,
+                        "amo": 2640,
+                        "transitions": 432,
+                        "vertex_collisions": 720,
+                        "edge_collisions": 1296,
+                        "total_clauses": 5224,
+                        "total_variables": 480
+                    },
+                    "paths": {
+                        "0": [[0, 1], [0, 1], [0, 2], [0, 3], [1, 3], [2, 3], [3, 3], [3, 2], [3, 1], [3, 2]],
+                        "1": [[1, 3], [2, 3], [3, 3], [3, 2], [3, 1], [3, 0], [2, 0], [1, 0], [1, 0], [2, 0]],
+                        "2": [[3, 2], [3, 1], [3, 0], [2, 0], [1, 0], [1, 0], [0, 0], [0, 0], [0, 0], [0, 1]],
+                        "3": [[2, 0], [1, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 1], [0, 2], [0, 3], [1, 3]]
+                    },
+                    "reason": "SAT (Suboptimal): Feasible schedule found, but 6 is the true minimal makespan."
+                }
+            }
+        }
+    };
     const ROBOT_COLORS = ["#E63946", "#38BDF8", "#2A9D8F", "#F4A261", "#9B5DE5", "#F15BB5"];
 
     let currentScenarioKey = "warehouse";
@@ -639,6 +1100,7 @@
       if (key === "rotation") document.getElementById("tabRotation").classList.add("active");
 
       const sc = DATA[key];
+      updateInstanceParameters();
       const { minT, maxT } = getScenarioHorizonBounds(sc);
 
       // Configure slider to start from BFS distance up to optimal_T + 2
@@ -1006,6 +1468,21 @@
         }
       }
       bmcStep();
+    }
+
+    function updateInstanceParameters() {
+      const sc = DATA[currentScenarioKey];
+      const totalCells = sc.width * sc.height;
+      const obstacleCount = sc.obstacles.length;
+      const freeCells = totalCells - obstacleCount;
+      const robotCount = sc.starts.length;
+      document.getElementById("instanceName").textContent = sc.name;
+      document.getElementById("instanceGridSize").textContent = `${sc.width} × ${sc.height}`;
+      document.getElementById("instanceFreeCells").textContent = freeCells;
+      document.getElementById("instanceObstacles").textContent = `${obstacleCount} cells`;
+      document.getElementById("instanceRobots").textContent = robotCount;
+      document.getElementById("instanceOptimalT").textContent = sc.optimal_T;
+      document.getElementById("instanceLowerBound").textContent = sc.lower_bound;
     }
 
     // Initialize
