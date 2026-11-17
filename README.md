@@ -135,6 +135,10 @@ python3 demo.py
 ```
 This runs all scenarios, prints ASCII playback, generates animated GIFs in `output/*.gif`, and produces interactive HTML5 visualizers in `output/*.html`.
 
+### HTML Demo
+```bash
+https://p-amrutha-sai.github.io/B.Tech-MFCS/demo.html
+```
 ---
 
 ## 6. Real-World Applications
